@@ -5,8 +5,8 @@
         <basic-info-form ref="basicInfo" :info="info" />
       </el-tab-pane>
       <el-tab-pane label="字段信息" name="cloum">
-        <el-table :data="cloumns" :max-height="tableHeight">
-          <el-table-column label="序号" type="index" min-width="5%" />
+        <el-table ref="dragTable" :data="cloumns" row-key="columnId" :max-height="tableHeight">
+          <el-table-column label="序号" type="index" min-width="5%" class-name="allowDrag" />
           <el-table-column
             label="字段列名"
             prop="columnName"
@@ -110,7 +110,7 @@
         </el-table>
       </el-tab-pane>
       <el-tab-pane label="生成信息" name="genInfo">
-        <gen-info-form ref="genInfo" :info="info" />
+        <gen-info-form ref="genInfo" :info="info" :menus="menus"/>
       </el-tab-pane>
     </el-tabs>
     <el-form label-width="100px">
@@ -124,8 +124,11 @@
 <script>
 import { getGenTable, updateGenTable } from "@/api/tool/gen";
 import { optionselect as getDictOptionselect } from "@/api/system/dict/type";
+import { listMenu as getMenuTreeselect } from "@/api/system/menu";
 import basicInfoForm from "./basicInfoForm";
 import genInfoForm from "./genInfoForm";
+import Sortable from 'sortablejs'
+
 export default {
   name: "GenEdit",
   components: {
@@ -142,12 +145,14 @@ export default {
       cloumns: [],
       // 字典信息
       dictOptions: [],
+      // 菜单信息
+      menus: [],
       // 表详细信息
       info: {}
     };
   },
-  beforeCreate() {
-    const { tableId } = this.$route.query;
+  created() {
+    const tableId = this.$route.params && this.$route.params.tableId;
     if (tableId) {
       // 获取表详细信息
       getGenTable(tableId).then(res => {
@@ -157,6 +162,10 @@ export default {
       /** 查询字典下拉列表 */
       getDictOptionselect().then(response => {
         this.dictOptions = response.data;
+      });
+      /** 查询菜单下拉列表 */
+      getMenuTreeselect().then(response => {
+        this.menus = this.handleTree(response.data, "menuId");
       });
     }
   },
@@ -173,7 +182,8 @@ export default {
           genTable.params = {
             treeCode: genTable.treeCode,
             treeName: genTable.treeName,
-            treeParentCode: genTable.treeParentCode
+            treeParentCode: genTable.treeParentCode,
+            parentMenuId: genTable.parentMenuId
           };
           updateGenTable(genTable).then(res => {
             this.msgSuccess(res.msg);
@@ -198,6 +208,19 @@ export default {
       this.$store.dispatch("tagsView/delView", this.$route);
       this.$router.push({ path: "/tool/gen", query: { t: Date.now()}})
     }
+  },
+  mounted() {
+    const el = this.$refs.dragTable.$el.querySelectorAll(".el-table__body-wrapper > table > tbody")[0];
+    const sortable = Sortable.create(el, {
+      handle: ".allowDrag",
+      onEnd: evt => {
+        const targetRow = this.cloumns.splice(evt.oldIndex, 1)[0];
+        this.cloumns.splice(evt.newIndex, 0, targetRow);
+        for (let index in this.cloumns) {
+          this.cloumns[index].sort = parseInt(index) + 1;
+        }
+      }
+    });
   }
 };
 </script>
