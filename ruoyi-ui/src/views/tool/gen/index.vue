@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryForm" :inline="true" label-width="68px">
+    <el-form :model="queryParams" ref="queryForm" :inline="true" v-show="showSearch" label-width="68px">
       <el-form-item label="表名称" prop="tableName">
         <el-input
           v-model="queryParams.tableName"
@@ -32,7 +32,7 @@
         ></el-date-picker>
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
+        <el-button type="cyan" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
         <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
       </el-form-item>
     </el-form>
@@ -76,6 +76,7 @@
           v-hasPermi="['tool:gen:remove']"
         >删除</el-button>
       </el-col>
+      <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
     <el-table v-loading="loading" :data="tableList" @selection-change="handleSelectionChange">
@@ -134,6 +135,13 @@
           <el-button
             type="text"
             size="small"
+            icon="el-icon-refresh"
+            @click="handleSynchDb(scope.row)"
+            v-hasPermi="['tool:gen:edit']"
+          >同步</el-button>
+          <el-button
+            type="text"
+            size="small"
             icon="el-icon-download"
             @click="handleGenTable(scope.row)"
             v-hasPermi="['tool:gen:code']"
@@ -166,7 +174,7 @@
 </template>
 
 <script>
-import { listTable, previewTable, delTable } from "@/api/tool/gen";
+import { listTable, previewTable, delTable, genCode, synchDb } from "@/api/tool/gen";
 import importTable from "./importTable";
 import { downLoadZip } from "@/utils/zipdownload";
 export default {
@@ -186,6 +194,8 @@ export default {
       single: true,
       // 非多个禁用
       multiple: true,
+      // 显示搜索条件
+      showSearch: true,
       // 总条数
       total: 0,
       // 表数据
@@ -241,7 +251,26 @@ export default {
         this.msgError("请选择要生成的数据");
         return;
       }
-      downLoadZip("/tool/gen/batchGenCode?tables=" + tableNames, "ruoyi");
+      if(row.genType === "1") {
+        genCode(row.tableName).then(response => {
+          this.msgSuccess("成功生成到自定义路径：" + row.genPath);
+        });
+      } else {
+        downLoadZip("/tool/gen/batchGenCode?tables=" + tableNames, "ruoyi");
+      }
+    },
+    /** 同步数据库操作 */
+    handleSynchDb(row) {
+      const tableName = row.tableName;
+      this.$confirm('确认要强制同步"' + tableName + '"表结构吗？', "警告", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      }).then(function() {
+          return synchDb(tableName);
+      }).then(() => {
+          this.msgSuccess("同步成功");
+      })
     },
     /** 打开导入表弹窗 */
     openImportTable() {
@@ -284,7 +313,7 @@ export default {
       }).then(() => {
           this.getList();
           this.msgSuccess("删除成功");
-      }).catch(function() {});
+      })
     }
   }
 };

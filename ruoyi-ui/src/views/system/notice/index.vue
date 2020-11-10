@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryForm" :inline="true" label-width="68px">
+    <el-form :model="queryParams" ref="queryForm" :inline="true" v-show="showSearch" label-width="68px">
       <el-form-item label="公告标题" prop="noticeTitle">
         <el-input
           v-model="queryParams.noticeTitle"
@@ -30,7 +30,7 @@
         </el-select>
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
+        <el-button type="cyan" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
         <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
       </el-form-item>
     </el-form>
@@ -65,6 +65,7 @@
           v-hasPermi="['system:notice:remove']"
         >删除</el-button>
       </el-col>
+      <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
     <el-table v-loading="loading" :data="noticeList" @selection-change="handleSelectionChange">
@@ -158,12 +159,12 @@
           </el-col>
           <el-col :span="24">
             <el-form-item label="内容">
-              <Editor v-model="form.noticeContent" />
+              <editor v-model="form.noticeContent" :min-height="192"/>
             </el-form-item>
           </el-col>
         </el-row>
       </el-form>
-      <div slot="footer" class="dialog-footer" style="padding-top:20px">
+      <div slot="footer" class="dialog-footer">
         <el-button type="primary" @click="submitForm">确 定</el-button>
         <el-button @click="cancel">取 消</el-button>
       </div>
@@ -190,6 +191,8 @@ export default {
       single: true,
       // 非多个禁用
       multiple: true,
+      // 显示搜索条件
+      showSearch: true,
       // 总条数
       total: 0,
       // 公告表格数据
@@ -218,7 +221,7 @@ export default {
           { required: true, message: "公告标题不能为空", trigger: "blur" }
         ],
         noticeType: [
-          { required: true, message: "公告类型不能为空", trigger: "blur" }
+          { required: true, message: "公告类型不能为空", trigger: "change" }
         ]
       }
     };
@@ -304,19 +307,15 @@ export default {
         if (valid) {
           if (this.form.noticeId != undefined) {
             updateNotice(this.form).then(response => {
-              if (response.code === 200) {
-                this.msgSuccess("修改成功");
-                this.open = false;
-                this.getList();
-              }
+              this.msgSuccess("修改成功");
+              this.open = false;
+              this.getList();
             });
           } else {
             addNotice(this.form).then(response => {
-              if (response.code === 200) {
-                this.msgSuccess("新增成功");
-                this.open = false;
-                this.getList();
-              }
+              this.msgSuccess("新增成功");
+              this.open = false;
+              this.getList();
             });
           }
         }
@@ -334,7 +333,7 @@ export default {
         }).then(() => {
           this.getList();
           this.msgSuccess("删除成功");
-        }).catch(function() {});
+        })
     }
   }
 };

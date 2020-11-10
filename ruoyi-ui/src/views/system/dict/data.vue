@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryForm" :inline="true">
+    <el-form :model="queryParams" ref="queryForm" :inline="true" v-show="showSearch" label-width="68px">
       <el-form-item label="字典名称" prop="dictType">
         <el-select v-model="queryParams.dictType" size="small">
           <el-option
@@ -31,7 +31,7 @@
         </el-select>
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
+        <el-button type="cyan" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
         <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
       </el-form-item>
     </el-form>
@@ -75,6 +75,7 @@
           v-hasPermi="['system:dict:export']"
         >导出</el-button>
       </el-col>
+      <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
     <el-table v-loading="loading" :data="dataList" @selection-change="handleSelectionChange">
@@ -170,6 +171,8 @@ export default {
       single: true,
       // 非多个禁用
       multiple: true,
+      // 显示搜索条件
+      showSearch: true,
       // 总条数
       total: 0,
       // 字典表格数据
@@ -301,19 +304,15 @@ export default {
         if (valid) {
           if (this.form.dictCode != undefined) {
             updateData(this.form).then(response => {
-              if (response.code === 200) {
-                this.msgSuccess("修改成功");
-                this.open = false;
-                this.getList();
-              }
+              this.msgSuccess("修改成功");
+              this.open = false;
+              this.getList();
             });
           } else {
             addData(this.form).then(response => {
-              if (response.code === 200) {
-                this.msgSuccess("新增成功");
-                this.open = false;
-                this.getList();
-              }
+              this.msgSuccess("新增成功");
+              this.open = false;
+              this.getList();
             });
           }
         }
@@ -331,7 +330,7 @@ export default {
         }).then(() => {
           this.getList();
           this.msgSuccess("删除成功");
-        }).catch(function() {});
+        })
     },
     /** 导出按钮操作 */
     handleExport() {
@@ -344,7 +343,7 @@ export default {
           return exportData(queryParams);
         }).then(response => {
           this.download(response.msg);
-        }).catch(function() {});
+        })
     }
   }
 };

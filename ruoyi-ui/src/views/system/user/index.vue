@@ -27,7 +27,7 @@
       </el-col>
       <!--用户数据-->
       <el-col :span="20" :xs="24">
-        <el-form :model="queryParams" ref="queryForm" :inline="true" label-width="68px">
+        <el-form :model="queryParams" ref="queryForm" :inline="true" v-show="showSearch" label-width="68px">
           <el-form-item label="用户名称" prop="userName">
             <el-input
               v-model="queryParams.userName"
@@ -77,7 +77,7 @@
             ></el-date-picker>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
+            <el-button type="cyan" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
             <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
           </el-form-item>
         </el-form>
@@ -130,6 +130,7 @@
               v-hasPermi="['system:user:export']"
             >导出</el-button>
           </el-col>
+          <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
         </el-row>
 
         <el-table v-loading="loading" :data="userList" @selection-change="handleSelectionChange">
@@ -157,7 +158,7 @@
           <el-table-column
             label="操作"
             align="center"
-            width="180"
+            width="160"
             class-name="small-padding fixed-width"
           >
             <template slot-scope="scope">
@@ -208,7 +209,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="归属部门" prop="deptId">
-              <treeselect v-model="form.deptId" :options="deptOptions" :disable-branch-nodes="true" :show-count="true" placeholder="请选择归属部门" />
+              <treeselect v-model="form.deptId" :options="deptOptions" :show-count="true" placeholder="请选择归属部门" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -356,6 +357,8 @@ export default {
       single: true,
       // 非多个禁用
       multiple: true,
+      // 显示搜索条件
+      showSearch: true,
       // 总条数
       total: 0,
       // 用户表格数据
@@ -419,7 +422,7 @@ export default {
           { required: true, message: "用户昵称不能为空", trigger: "blur" }
         ],
         deptId: [
-          { required: true, message: "归属部门不能为空", trigger: "blur" }
+          { required: true, message: "归属部门不能为空", trigger: "change" }
         ],
         password: [
           { required: true, message: "用户密码不能为空", trigger: "blur" }
@@ -579,9 +582,7 @@ export default {
         cancelButtonText: "取消"
       }).then(({ value }) => {
           resetUserPwd(row.userId, value).then(response => {
-            if (response.code === 200) {
-              this.msgSuccess("修改成功，新密码是：" + value);
-            }
+            this.msgSuccess("修改成功，新密码是：" + value);
           });
         }).catch(() => {});
     },
@@ -591,19 +592,15 @@ export default {
         if (valid) {
           if (this.form.userId != undefined) {
             updateUser(this.form).then(response => {
-              if (response.code === 200) {
-                this.msgSuccess("修改成功");
-                this.open = false;
-                this.getList();
-              }
+              this.msgSuccess("修改成功");
+              this.open = false;
+              this.getList();
             });
           } else {
             addUser(this.form).then(response => {
-              if (response.code === 200) {
-                this.msgSuccess("新增成功");
-                this.open = false;
-                this.getList();
-              }
+              this.msgSuccess("新增成功");
+              this.open = false;
+              this.getList();
             });
           }
         }
@@ -621,7 +618,7 @@ export default {
         }).then(() => {
           this.getList();
           this.msgSuccess("删除成功");
-        }).catch(function() {});
+        })
     },
     /** 导出按钮操作 */
     handleExport() {
@@ -634,7 +631,7 @@ export default {
           return exportUser(queryParams);
         }).then(response => {
           this.download(response.msg);
-        }).catch(function() {});
+        })
     },
     /** 导入按钮操作 */
     handleImport() {
